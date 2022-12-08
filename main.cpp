@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 		videoplayer.Play();
 	}
 	catch (const std::exception& ex) {
-		std::cerr << "Exception: " << ex.what() << "\nLocation:"
+		std::cerr << "Exception: " << ex.what() << "\nLocation: "
 			<< __FUNCTION__ << ", " << __FILE__ << ", " << __LINE__ << std::endl;
 		std::exit(EXIT_FAILURE);
 	}
