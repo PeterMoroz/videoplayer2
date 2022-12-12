@@ -7,6 +7,7 @@
 struct SwsContext;
 
 class PictureWriter;
+class ImageBuffer;
 
 class Rescaler : public FrameReceiver
 {
@@ -37,7 +38,8 @@ public:
 	bool init(int srcWidth, int srcHeight, int srcFormat, 
 			int dstWidth, int dstHeight, int dstFormat, int flags);
 
-	void setPictureBuffer(uint8_t* pictureData[4], int pictureLinesize[4]);
+	// void setPictureBuffer(uint8_t* pictureData[4], int pictureLinesize[4]);
+	void setOutputBuffer(ImageBuffer* imageBuffer);
 	void setPictureWriter(PictureWriter* writer);
 
 	void acceptFrame(const AVFrame* frame) override;
@@ -50,5 +52,6 @@ private:
 
 	uint8_t* _pictureData[4];
 	int _pictureLinesize[4] = { 0 };
+	ImageBuffer* _outImageBuffer;
 	PictureWriter* _pictureWriter;
 };

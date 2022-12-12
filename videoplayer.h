@@ -3,6 +3,7 @@
 #include "demuxer.h"
 #include "rescaler.h"
 #include "picture_writer.h"
+#include "image_buffer.h"
 
 #include <memory>
 
@@ -39,7 +40,8 @@ private:
 
 	Rescaler _rescaler;
 	PictureWriter _pictureWriter;
+	ImageBuffer _pictureBuffer;
 
-	uint8_t* _pictureData[4] = { NULL };
-	int _pictureLinesize[4] = { 0 };
+	//uint8_t* _pictureData[4] = { NULL };
+	//int _pictureLinesize[4] = { 0 };
 };

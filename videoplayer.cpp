@@ -8,7 +8,7 @@
 extern "C"
 {
 #include <libavcodec/avcodec.h>
-#include <libavutil/imgutils.h>
+// #include <libavutil/imgutils.h>
 }
 
 #include <iostream>
@@ -83,16 +83,23 @@ bool Videoplayer::Open(const char* url)
 
 	releasePictureBuffer();
 
-	const int align = 1;
-	int ret = av_image_alloc(_pictureData, _pictureLinesize,
-		dstFrameWidth, dstFrameHeight, static_cast<AVPixelFormat>(dstFrameFormat), align);
-	if (ret < 0)
+	//const int align = 1;
+	//int ret = av_image_alloc(_pictureData, _pictureLinesize,
+	//	dstFrameWidth, dstFrameHeight, static_cast<AVPixelFormat>(dstFrameFormat), align);
+	//if (ret < 0)
+	//{
+	//	std::cerr << "av_image_alloc() failed. ret = " << ret << std::endl;
+	//	return false;
+	//}
+
+	if (!_pictureBuffer.allocate(dstFrameWidth, dstFrameHeight, dstFrameFormat))
 	{
-		std::cerr << "av_image_alloc() failed. ret = " << ret << std::endl;
+		std::cerr << "Could not allocate picture buffer." << std::endl;
 		return false;
 	}
 
-	_rescaler.setPictureBuffer(_pictureData, _pictureLinesize);
+	// _rescaler.setPictureBuffer(_pictureData, _pictureLinesize);
+	_rescaler.setOutputBuffer(&_pictureBuffer);
 	_rescaler.setPictureWriter(&_pictureWriter);
 
 	videostreamDecoder->addFrameReceiver(_rescaler);
@@ -132,10 +139,11 @@ void Videoplayer::Stop()
 
 void Videoplayer::releasePictureBuffer()
 {
-	av_freep(&_pictureData[0]);
-	for (size_t i = 0; i < 4; i++)
-	{
-		_pictureData[i] = NULL;
-		_pictureLinesize[i] = 0;
-	}
+	//av_freep(&_pictureData[0]);
+	//for (size_t i = 0; i < 4; i++)
+	//{
+	//	_pictureData[i] = NULL;
+	//	_pictureLinesize[i] = 0;
+	//}
+	_pictureBuffer.release();
 }

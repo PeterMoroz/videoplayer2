@@ -1,5 +1,6 @@
 #include "rescaler.h"
 #include "picture_writer.h"
+#include "image_buffer.h"
 
 extern "C"
 {
@@ -12,12 +13,11 @@ extern "C"
 
 Rescaler::Rescaler()
 	: _context(NULL)
+	, _outImageBuffer(NULL)
 	, _pictureWriter(NULL)
+
 {
-	for (size_t i = 0; i < 4; i++)
-	{
-		_pictureData[i] = NULL;
-	}
+
 }
 
 Rescaler::~Rescaler()
@@ -46,12 +46,21 @@ bool Rescaler::init(int srcWidth, int srcHeight, int srcFormat, int dstWidth, in
 	return true;
 }
 
-void Rescaler::setPictureBuffer(uint8_t* pictureData[4], int pictureLinesize[4])
+//void Rescaler::setPictureBuffer(uint8_t* pictureData[4], int pictureLinesize[4])
+//{
+//	for (size_t i = 0; i < 4; i++)
+//	{
+//		_pictureData[i] = pictureData[i];
+//		_pictureLinesize[i] = pictureLinesize[i];
+//	}
+//}
+
+void Rescaler::setOutputBuffer(ImageBuffer* imageBuffer)
 {
-	for (size_t i = 0; i < 4; i++)
+	_outImageBuffer = imageBuffer;
+	if (_outImageBuffer)
 	{
-		_pictureData[i] = pictureData[i];
-		_pictureLinesize[i] = pictureLinesize[i];
+		_outImageBuffer->provideAccess(_pictureData, _pictureLinesize);
 	}
 }
 
