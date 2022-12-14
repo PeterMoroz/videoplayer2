@@ -13,9 +13,7 @@ extern "C"
 
 Rescaler::Rescaler()
 	: _context(NULL)
-	, _outImageBuffer(NULL)
 	, _pictureWriter(NULL)
-
 {
 
 }
@@ -57,10 +55,9 @@ bool Rescaler::init(int srcWidth, int srcHeight, int srcFormat, int dstWidth, in
 
 void Rescaler::setOutputBuffer(ImageBuffer* imageBuffer)
 {
-	_outImageBuffer = imageBuffer;
-	if (_outImageBuffer)
+	if (imageBuffer)
 	{
-		_outImageBuffer->provideAccess(_pictureData, _pictureLinesize);
+		imageBuffer->provideAccess(_pictureData, _pictureLinesize);
 	}
 }
 
@@ -69,27 +66,47 @@ void Rescaler::setPictureWriter(PictureWriter* writer)
 	_pictureWriter = writer;
 }
 
-void Rescaler::acceptFrame(const AVFrame* frame)
+//void Rescaler::acceptFrame(const AVFrame* frame)
+//{
+//	if (!frame)
+//	{
+//		return;
+//	}
+//
+//	if (!_context)
+//	{
+//		throw std::logic_error("Scale context is not initialized.");
+//	}
+//
+//	if (_pictureData[0] == NULL || _pictureLinesize[0] == 0)
+//	{
+//		throw std::logic_error("Picture buffer is not initialized.");
+//	}
+//
+//	int height = sws_scale(_context, reinterpret_cast<uint8_t const* const*>(frame->data), frame->linesize, 0, frame->height, _pictureData, _pictureLinesize);
+//
+//	if (_pictureWriter)
+//	{
+//		_pictureWriter->savePicture(_pictureData, _pictureLinesize, _dstWidth, _dstHeight);
+//	}
+//}
+
+void Rescaler::scaleFrame(const AVFrame* frame)
 {
 	if (!frame)
 	{
 		return;
 	}
-
+	
 	if (!_context)
 	{
 		throw std::logic_error("Scale context is not initialized.");
 	}
-
+	
 	if (_pictureData[0] == NULL || _pictureLinesize[0] == 0)
 	{
 		throw std::logic_error("Picture buffer is not initialized.");
 	}
-
+	
 	int height = sws_scale(_context, reinterpret_cast<uint8_t const* const*>(frame->data), frame->linesize, 0, frame->height, _pictureData, _pictureLinesize);
-
-	if (_pictureWriter)
-	{
-		_pictureWriter->savePicture(_pictureData, _pictureLinesize, _dstWidth, _dstHeight);
-	}
 }

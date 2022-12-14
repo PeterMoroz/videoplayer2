@@ -1,15 +1,16 @@
 #pragma once
 
-#include "frame_receiver.h"
-
 #include <cstdint>
 
 struct SwsContext;
 
+struct AVFrame;
+
 class PictureWriter;
 class ImageBuffer;
 
-class Rescaler : public FrameReceiver
+
+class Rescaler final
 {
 public:
 	enum Flags
@@ -30,7 +31,7 @@ public:
 
 public:
 	Rescaler();
-	~Rescaler() override;
+	~Rescaler();
 
 	Rescaler(const Rescaler&) = delete;
 	Rescaler& operator=(const Rescaler&) = delete;
@@ -42,8 +43,7 @@ public:
 	void setOutputBuffer(ImageBuffer* imageBuffer);
 	void setPictureWriter(PictureWriter* writer);
 
-	void acceptFrame(const AVFrame* frame) override;
-
+	void scaleFrame(const AVFrame* frame);
 
 private:
 	SwsContext *_context;
@@ -52,6 +52,5 @@ private:
 
 	uint8_t* _pictureData[4];
 	int _pictureLinesize[4] = { 0 };
-	ImageBuffer* _outImageBuffer;
 	PictureWriter* _pictureWriter;
 };

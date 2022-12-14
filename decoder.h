@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <functional>
 
 struct AVCodecContext;
 struct AVPacket;
@@ -23,10 +24,12 @@ public:
 
 	bool sendPacket(const AVPacket *packet);
 
-	void addFrameReceiver(FrameReceiver& receiver);
+	// void addFrameReceiver(FrameReceiver& receiver);
+	void setFrameReceiver(std::function<void(AVFrame*)>&& onFrameReady);
 
 protected:
 	AVCodecContext* _codec_context;
 	AVFrame* _frame;
-	std::list<std::reference_wrapper<FrameReceiver>> _frameReceivers;
+	// std::list<std::reference_wrapper<FrameReceiver>> _frameReceivers;
+	std::function<void(AVFrame*)> _onFrameReady;
 };

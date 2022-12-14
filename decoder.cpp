@@ -99,17 +99,27 @@ bool Decoder::sendPacket(const AVPacket *packet)
 			std::cerr << "avcodec_receive_frame() failed. ret = " << ret << std::endl;
 			return false;
 		}
-		
-		for (const auto& receiver : _frameReceivers)
+	
+		//for (const auto& receiver : _frameReceivers)
+		//{
+		//	receiver.get().acceptFrame(_frame);	// receiver(_frame);
+		//}
+
+		if (_onFrameReady)
 		{
-			receiver.get().acceptFrame(_frame);	// receiver(_frame);
+			_onFrameReady(_frame);
 		}
 	}
 
 	return true;
 }
 
-void Decoder::addFrameReceiver(FrameReceiver& receiver)
+//void Decoder::addFrameReceiver(FrameReceiver& receiver)
+//{
+//	_frameReceivers.emplace_back(receiver);
+//}
+
+void Decoder::setFrameReceiver(std::function<void(AVFrame*)>&& onFrameReady)
 {
-	_frameReceivers.emplace_back(receiver);
+	_onFrameReady = std::move(onFrameReady);
 }

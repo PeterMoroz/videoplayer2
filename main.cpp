@@ -1,9 +1,10 @@
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 
 #include "videoplayer.h"
 #include "audio_output_device.h"
-#include "video_output_device.h"
+#include "display.h"
 
 int main(int argc, char* argv[])
 {
@@ -15,9 +16,18 @@ int main(int argc, char* argv[])
 
 	try {
 		AudioOutputDevice audioOutputDevice;
-		VideoOutputDevice videoOutputDevice;
+		Display display;
 
-		Videoplayer videoplayer(videoOutputDevice, audioOutputDevice);
+		// TO DO: init display
+		std::ostringstream oss;
+		oss << "videplayer - " << argv[0];
+		if (display.addWindow(oss.str().c_str(), 0, 0, 1024, 768))
+		{
+			std::cerr << "Could not add render window. " << std::endl;
+			std::exit(EXIT_FAILURE);
+		}
+
+		Videoplayer videoplayer(display, audioOutputDevice);
 
 		videoplayer.Open(argv[1]);
 		videoplayer.Play();

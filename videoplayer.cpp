@@ -11,7 +11,9 @@ extern "C"
 // #include <libavutil/imgutils.h>
 }
 
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 Videoplayer::Videoplayer(VideoOutputDevice& videoOutputDevice, AudioOutputDevice& audioOutputDevice)
 	: _videoOutputDevice(videoOutputDevice)
@@ -51,9 +53,9 @@ bool Videoplayer::Open(const char* url)
 	int srcFrameHeight = 0;
 	int srcFrameFormat = 0;
 
-	const int dstFrameWidth = 800;
-	const int dstFrameHeight = 600;
-	const int dstFrameFormat = AV_PIX_FMT_RGB24;
+	const int dstFrameWidth = _videoOutputDevice.getWidth();
+	const int dstFrameHeight = _videoOutputDevice.getHeight();
+	const int dstFrameFormat = AV_PIX_FMT_YUV420P;// AV_PIX_FMT_RGB24;
 
 	if (!videostreamDecoder->getParameter("width", srcFrameWidth))
 	{
@@ -100,9 +102,17 @@ bool Videoplayer::Open(const char* url)
 
 	// _rescaler.setPictureBuffer(_pictureData, _pictureLinesize);
 	_rescaler.setOutputBuffer(&_pictureBuffer);
-	_rescaler.setPictureWriter(&_pictureWriter);
+	// _rescaler.setPictureWriter(&_pictureWriter);
 
-	videostreamDecoder->addFrameReceiver(_rescaler);
+	_videoOutputDevice.setImageBuffer(&_pictureBuffer);
+
+	// videostreamDecoder->addFrameReceiver(_rescaler);
+	videostreamDecoder->setFrameReceiver([this](AVFrame* frame){
+		_rescaler.scaleFrame(frame);
+		_videoOutputDevice.updateWindow(0);
+		_videoOutputDevice.presentWindow(0);
+		std::this_thread::sleep_for(std::chrono::milliseconds(40)); // 25 FPS
+	});
 
 	_videostreamIndex = videostreamIndex;
 	_videostreamDecoder = std::move(videostreamDecoder);
