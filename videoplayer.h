@@ -41,7 +41,4 @@ private:
 	Rescaler _rescaler;
 	PictureWriter _pictureWriter;
 	ImageBuffer _pictureBuffer;
-
-	//uint8_t* _pictureData[4] = { NULL };
-	//int _pictureLinesize[4] = { 0 };
 };

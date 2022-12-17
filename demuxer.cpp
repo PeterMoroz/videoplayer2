@@ -71,30 +71,6 @@ bool Demuxer::readFrame(AVPacket* packet)
 	return true;
 }
 
-//Stream Demuxer::getStream(Stream::Type type)
-//{
-//	if (!_format_ctx)
-//	{
-//		std::cerr << "Format context is not prepared yet. " << std::endl;
-//		return Stream(-1, NULL);
-//	}
-//
-//	int index = -1;
-//	switch (type)
-//	{
-//	case Stream::Type::Audio:
-//		index = av_find_best_stream(_format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
-//		break;
-//	case Stream::Type::Video:
-//		index = av_find_best_stream(_format_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-//		break;
-//	default:
-//		std::cerr << "Unsupported stream type " << static_cast<int>(type) << std::endl;
-//	}
-//
-//	AVStream* stream = _format_ctx->nb_streams
-//}
-
 int Demuxer::getStreamIndex(StreamType type) const
 {
 	if (!_format_ctx)

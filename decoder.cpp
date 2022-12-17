@@ -8,13 +8,6 @@ extern "C"
 #include <cstring>
 #include <iostream>
 
-#include "frame_receiver.h"
-
-//Decoder::Decoder()
-//	: _codec_context(NULL)
-//{
-//
-//}
 
 Decoder::~Decoder()
 {
@@ -99,11 +92,6 @@ bool Decoder::sendPacket(const AVPacket *packet)
 			std::cerr << "avcodec_receive_frame() failed. ret = " << ret << std::endl;
 			return false;
 		}
-	
-		//for (const auto& receiver : _frameReceivers)
-		//{
-		//	receiver.get().acceptFrame(_frame);	// receiver(_frame);
-		//}
 
 		if (_onFrameReady)
 		{
@@ -113,11 +101,6 @@ bool Decoder::sendPacket(const AVPacket *packet)
 
 	return true;
 }
-
-//void Decoder::addFrameReceiver(FrameReceiver& receiver)
-//{
-//	_frameReceivers.emplace_back(receiver);
-//}
 
 void Decoder::setFrameReceiver(std::function<void(AVFrame*)>&& onFrameReady)
 {

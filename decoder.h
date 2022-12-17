@@ -7,8 +7,6 @@ struct AVCodecContext;
 struct AVPacket;
 struct AVFrame;
 
-class FrameReceiver;
-
 class Decoder final
 {
 public:
@@ -24,12 +22,10 @@ public:
 
 	bool sendPacket(const AVPacket *packet);
 
-	// void addFrameReceiver(FrameReceiver& receiver);
 	void setFrameReceiver(std::function<void(AVFrame*)>&& onFrameReady);
 
 protected:
 	AVCodecContext* _codec_context;
 	AVFrame* _frame;
-	// std::list<std::reference_wrapper<FrameReceiver>> _frameReceivers;
 	std::function<void(AVFrame*)> _onFrameReady;
 };

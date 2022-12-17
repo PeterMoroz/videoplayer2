@@ -18,7 +18,6 @@ int main(int argc, char* argv[])
 		AudioOutputDevice audioOutputDevice;
 		Display display;
 
-		// TO DO: init display
 		std::ostringstream oss;
 		oss << "videplayer - " << argv[0];
 		if (display.addWindow(oss.str().c_str(), 0, 0, 1024, 768))

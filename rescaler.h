@@ -39,7 +39,6 @@ public:
 	bool init(int srcWidth, int srcHeight, int srcFormat, 
 			int dstWidth, int dstHeight, int dstFormat, int flags);
 
-	// void setPictureBuffer(uint8_t* pictureData[4], int pictureLinesize[4]);
 	void setOutputBuffer(ImageBuffer* imageBuffer);
 	void setPictureWriter(PictureWriter* writer);
 
