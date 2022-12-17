@@ -2,7 +2,6 @@
 
 #include "demuxer.h"
 #include "rescaler.h"
-#include "picture_writer.h"
 #include "image_buffer.h"
 
 #include <memory>
@@ -39,6 +38,5 @@ private:
 	std::unique_ptr<Decoder> _videostreamDecoder;
 
 	Rescaler _rescaler;
-	PictureWriter _pictureWriter;
 	ImageBuffer _pictureBuffer;
 };

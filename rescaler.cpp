@@ -1,5 +1,4 @@
 #include "rescaler.h"
-#include "picture_writer.h"
 #include "image_buffer.h"
 
 extern "C"
@@ -13,7 +12,6 @@ extern "C"
 
 Rescaler::Rescaler()
 	: _context(NULL)
-	, _pictureWriter(NULL)
 {
 
 }
@@ -50,11 +48,6 @@ void Rescaler::setOutputBuffer(ImageBuffer* imageBuffer)
 	{
 		imageBuffer->provideAccess(_pictureData, _pictureLinesize);
 	}
-}
-
-void Rescaler::setPictureWriter(PictureWriter* writer)
-{
-	_pictureWriter = writer;
 }
 
 void Rescaler::scaleFrame(const AVFrame* frame)

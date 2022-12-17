@@ -6,7 +6,6 @@ struct SwsContext;
 
 struct AVFrame;
 
-class PictureWriter;
 class ImageBuffer;
 
 
@@ -40,7 +39,6 @@ public:
 			int dstWidth, int dstHeight, int dstFormat, int flags);
 
 	void setOutputBuffer(ImageBuffer* imageBuffer);
-	void setPictureWriter(PictureWriter* writer);
 
 	void scaleFrame(const AVFrame* frame);
 
@@ -51,5 +49,4 @@ private:
 
 	uint8_t* _pictureData[4];
 	int _pictureLinesize[4] = { 0 };
-	PictureWriter* _pictureWriter;
 };
