@@ -1,4 +1,6 @@
 #include "image_buffer.h"
+#include "image_buffer_reader.h"
+#include "image_buffer_writer.h"
 
 extern "C"
 {
@@ -41,6 +43,16 @@ ImageBuffer::~ImageBuffer()
 	release();
 }
 
+void ImageBuffer::initReader(ImageBufferReader& reader)
+{
+	reader.init(*this);
+}
+
+void ImageBuffer::initWriter(ImageBufferWriter& writer)
+{
+	writer.init(*this);
+}
+
 bool ImageBuffer::allocate(int width, int height, int format, int align/* = 1*/)
 {
 	release();
@@ -63,11 +75,11 @@ void ImageBuffer::release()
 	}
 }
 
-void ImageBuffer::provideAccess(uint8_t* data[], int linesize[])
-{
-	for (size_t i = 0; i < 4; i++)
-	{
-		data[i] = _image_data[i];
-		linesize[i] = _linesize[i];
-	}
-}
+//void ImageBuffer::provideAccess(uint8_t* data[], int linesize[])
+//{
+//	for (size_t i = 0; i < 4; i++)
+//	{
+//		data[i] = _image_data[i];
+//		linesize[i] = _linesize[i];
+//	}
+//}

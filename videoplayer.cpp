@@ -14,6 +14,25 @@ extern "C"
 #include <iostream>
 #include <thread>
 
+namespace
+{
+
+int getPixelFormat(VideoOutputDevice::PixelFormat pixFormat)
+{
+	switch (pixFormat)
+	{
+	case VideoOutputDevice::PixFormat_None:
+		return AV_PIX_FMT_NONE;
+	case VideoOutputDevice::PixFormat_RGB24:
+		return AV_PIX_FMT_RGB24;
+	default:
+		return AV_PIX_FMT_NONE;
+	}
+	return AV_PIX_FMT_NONE;
+}
+
+}
+
 Videoplayer::Videoplayer(VideoOutputDevice& videoOutputDevice, AudioOutputDevice& audioOutputDevice)
 	: _videoOutputDevice(videoOutputDevice)
 	, _audioOutputDevice(audioOutputDevice)
@@ -54,7 +73,7 @@ bool Videoplayer::Open(const char* url)
 
 	const int dstFrameWidth = _videoOutputDevice.getWidth();
 	const int dstFrameHeight = _videoOutputDevice.getHeight();
-	const int dstFrameFormat = AV_PIX_FMT_YUV420P;// AV_PIX_FMT_RGB24;
+	const int dstFrameFormat = getPixelFormat(_videoOutputDevice.getPixelFormat());
 
 	if (!videostreamDecoder->getParameter("width", srcFrameWidth))
 	{
@@ -90,9 +109,8 @@ bool Videoplayer::Open(const char* url)
 		return false;
 	}
 
-	_rescaler.setOutputBuffer(&_pictureBuffer);
-
-	_videoOutputDevice.setImageBuffer(&_pictureBuffer);
+	_pictureBuffer.initWriter(_rescaler);
+	_pictureBuffer.initReader(_videoOutputDevice);
 
 	videostreamDecoder->setFrameReceiver([this](AVFrame* frame){
 		_rescaler.scaleFrame(frame);

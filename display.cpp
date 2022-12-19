@@ -34,8 +34,19 @@ Display::~Display()
 	}
 }
 
-int Display::addWindow(const char* title, int x, int y, int w, int h)
+int Display::addWindow(const char* title, int x, int y, int w, int h, PixelFormat pixelFormat)
 {
+	uint32_t pixFormat = SDL_PIXELFORMAT_UNKNOWN;
+	switch (pixelFormat)
+	{
+	case PixFormat_RGB24:
+		pixFormat = SDL_PIXELFORMAT_RGB24;
+		break;
+	default:
+		std::cerr << "Unsupported pixel format." << std::endl;
+		return -1;
+	}
+
 	SDL_Window* window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_SHOWN);
 	if (!window)
 	{
@@ -51,7 +62,7 @@ int Display::addWindow(const char* title, int x, int y, int w, int h)
 		return -1;
 	}
 
-	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, w, h);
+	SDL_Texture* texture = SDL_CreateTexture(renderer, pixFormat, SDL_TEXTUREACCESS_STREAMING, w, h);
 	if (!texture)
 	{
 		std::cerr << "SDL_CreateTexture() failed. error: " << SDL_GetError() << std::endl;
@@ -59,6 +70,10 @@ int Display::addWindow(const char* title, int x, int y, int w, int h)
 		SDL_DestroyWindow(window);
 		return -1;
 	}
+
+	_width = w;
+	_height = h;
+	_pixelFormat = pixelFormat;
 
 	_window = window;
 	_renderer = renderer;
@@ -69,16 +84,21 @@ int Display::addWindow(const char* title, int x, int y, int w, int h)
 
 void Display::updateWindow(int wndIndex)
 {
-	int ret = SDL_UpdateYUVTexture(_texture, NULL,
-		_pictureData[0], _pictureLinesize[0],
-		_pictureData[1], _pictureLinesize[1],
-		_pictureData[2], _pictureLinesize[2]);
+	void* pixels[1] = { NULL };
+	int pitch[1] = { 0 };
 
+	int ret = 0;
+	ret = SDL_LockTexture(_texture, NULL, (void **)pixels, pitch);
 	if (ret < 0)
 	{
-		std::cerr << "SDL_UpdateYUVTexture() failed. error: "
+		std::cerr << "SDL_LockTexture() failed. error: "
 			<< SDL_GetError() << " ( " << ret << " ) " << std::endl;
+		return;
 	}
+
+	std::memcpy(pixels[0], _image_data[0], pitch[0] * _height);
+
+	SDL_UnlockTexture(_texture);
 }
 
 bool Display::presentWindow(int wndIndex)

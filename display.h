@@ -13,7 +13,7 @@ public:
 	Display();
 	~Display() override;
 
-	int addWindow(const char* title, int x, int y, int w, int h) override;
+	int addWindow(const char* title, int x, int y, int w, int h, PixelFormat pixelFormat) override;
 	void updateWindow(int wndIndex) override;
 	bool presentWindow(int wndIndex) override;
 
