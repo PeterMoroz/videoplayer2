@@ -17,4 +17,6 @@ private:
 public:
 	bool initSubsystem(uint32_t id);
 	void quitSubsystem(uint32_t id);
+
+	void delay(uint32_t ms);
 };

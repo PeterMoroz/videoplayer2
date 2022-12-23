@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 
 		std::ostringstream oss;
 		oss << "videplayer - " << argv[0];
-		if (display.addWindow(oss.str().c_str(), 0, 0, 1024, 768, VideoOutputDevice::PixFormat_RGB24))
+		if (display.addWindow(oss.str().c_str(), 10, 10, 1024, 768, VideoOutputDevice::PixFormat_RGB24))
 		{
 			std::cerr << "Could not add render window. " << std::endl;
 			std::exit(EXIT_FAILURE);

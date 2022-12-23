@@ -1,5 +1,6 @@
 #include "display.h"
 #include "image_buffer.h"
+#include "sdl_library.h"
 
 #include <SDL.h>
 
@@ -10,7 +11,11 @@ Display::Display()
 	, _renderer(NULL)
 	, _texture(NULL)
 {
-
+	if (!SDL_Library::getInstance().initSubsystem(SDL_INIT_VIDEO))
+	{
+		std::cerr << "SDL init video failed." << std::endl;
+		throw std::runtime_error("Can not initialize video subsystem (SDL).");
+	}
 }
 
 Display::~Display()
@@ -32,6 +37,8 @@ Display::~Display()
 		SDL_DestroyWindow(_window);
 		_window = NULL;
 	}
+
+	SDL_Library::getInstance().quitSubsystem(SDL_INIT_VIDEO);
 }
 
 int Display::addWindow(const char* title, int x, int y, int w, int h, PixelFormat pixelFormat)

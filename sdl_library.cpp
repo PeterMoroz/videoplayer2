@@ -37,3 +37,8 @@ void SDL_Library::quitSubsystem(uint32_t id)
 {
 	SDL_QuitSubSystem(id);
 }
+
+void SDL_Library::delay(uint32_t ms)
+{
+	SDL_Delay(ms);
+}

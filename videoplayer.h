@@ -39,4 +39,5 @@ private:
 
 	Rescaler _rescaler;
 	ImageBuffer _pictureBuffer;
+	bool _quit = false;
 };

@@ -2,6 +2,8 @@
 
 #include "audio_output_device.h"
 #include "video_output_device.h"
+#include "event_dispatcher.h"
+#include "sdl_library.h"
 
 #include "decoder.h"
 
@@ -10,9 +12,7 @@ extern "C"
 #include <libavcodec/avcodec.h>
 }
 
-#include <chrono>
 #include <iostream>
-#include <thread>
 
 namespace
 {
@@ -37,7 +37,11 @@ Videoplayer::Videoplayer(VideoOutputDevice& videoOutputDevice, AudioOutputDevice
 	: _videoOutputDevice(videoOutputDevice)
 	, _audioOutputDevice(audioOutputDevice)
 {
+	auto onQuit = [this]() {
+		_quit = true;
+	};
 
+	EventDispatcher::getInstance().addHandler(EventDispatcher::Evt_Quit, std::move(onQuit));
 }
 
 Videoplayer::~Videoplayer()
@@ -49,7 +53,7 @@ bool Videoplayer::Open(const char* url)
 {
 	if (!_demuxer.Open(url))
 	{
-		std::cerr << "Couuld not open " << url << std::endl;
+		std::cerr << "Could not open " << url << std::endl;
 		return false;
 	}
 
@@ -116,7 +120,8 @@ bool Videoplayer::Open(const char* url)
 		_rescaler.scaleFrame(frame);
 		_videoOutputDevice.updateWindow(0);
 		_videoOutputDevice.presentWindow(0);
-		std::this_thread::sleep_for(std::chrono::milliseconds(40)); // 25 FPS
+		SDL_Library::getInstance().delay(40); // 25 FPS
+		EventDispatcher::getInstance().pollEvents();
 	});
 
 	_videostreamIndex = videostreamIndex;
