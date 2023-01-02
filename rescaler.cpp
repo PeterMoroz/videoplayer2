@@ -42,14 +42,6 @@ bool Rescaler::init(int srcWidth, int srcHeight, int srcFormat, int dstWidth, in
 	return true;
 }
 
-//void Rescaler::setOutputBuffer(ImageBuffer* imageBuffer)
-//{
-//	if (imageBuffer)
-//	{
-//		imageBuffer->provideAccess(_pictureData, _pictureLinesize);
-//	}
-//}
-
 void Rescaler::scaleFrame(const AVFrame* frame)
 {
 	if (!frame)

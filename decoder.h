@@ -1,6 +1,5 @@
 #pragma once
 
-#include <list>
 #include <functional>
 
 struct AVCodecContext;

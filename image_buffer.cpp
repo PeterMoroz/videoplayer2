@@ -74,12 +74,3 @@ void ImageBuffer::release()
 		_linesize[i] = 0;
 	}
 }
-
-//void ImageBuffer::provideAccess(uint8_t* data[], int linesize[])
-//{
-//	for (size_t i = 0; i < 4; i++)
-//	{
-//		data[i] = _image_data[i];
-//		linesize[i] = _linesize[i];
-//	}
-//}

@@ -65,6 +65,32 @@ bool Decoder::getParameter(const char* key, int& value) const
 		std::cerr << "Unknown video decoder's parameter: " << key << std::endl;
 		return false;
 	}
+	case AVMEDIA_TYPE_AUDIO:
+	{
+		if (!std::strcmp(key, "channels"))
+		{
+			value = _codec_context->channels;
+			return true;
+		}
+		else if (!std::strcmp(key, "sample-format"))
+		{
+			value = _codec_context->sample_fmt;
+			return true;
+		}
+		else if (!std::strcmp(key, "channel-layout"))
+		{
+			value = _codec_context->channel_layout;
+			return true;
+		}
+		else if (!std::strcmp(key, "sample-rate"))
+		{
+			value = _codec_context->sample_rate;
+			return true;
+		}
+
+		std::cerr << "Unknown audio decoder's parameter: " << key << std::endl;
+		return false;
+	}
 	default:
 		throw std::logic_error("Couldn't get decoder's parameter. Unsupported codec type.");
 	}
