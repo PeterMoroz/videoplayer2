@@ -14,7 +14,7 @@ public:
 	~Display() override;
 
 	int addWindow(const char* title, int x, int y, int w, int h, PixelFormat pixelFormat) override;
-	void updateWindow(int wndIndex) override;
+	void updateWindow(int wndIndex, uint8_t* image_data[], int linesize[]) override;
 	bool presentWindow(int wndIndex) override;
 
 private:

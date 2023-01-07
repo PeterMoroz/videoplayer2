@@ -148,9 +148,6 @@ bool Videoplayer::Open(const char* url)
 		return false;
 	}
 
-	_pictureBuffer.initWriter(_rescaler);
-	_pictureBuffer.initReader(_videoOutputDevice);
-
 
 	using namespace std::placeholders;
 	videostreamDecoder->setFrameReceiver(std::bind(&Videoplayer::onVideoFrame, this, _1));
@@ -281,8 +278,13 @@ void Videoplayer::onAudioFrame(AVFrame* frame)
 
 void Videoplayer::onVideoFrame(AVFrame* frame)
 {
+	uint8_t* image_data[4] = { NULL };
+	int linesize[4] = { 0 };
+
+	_pictureBuffer.getBuffer(image_data, linesize);
+	_rescaler.setOutputBuffer(image_data, linesize);
 	_rescaler.scaleFrame(frame);
-	_videoOutputDevice.updateWindow(0);
+	_videoOutputDevice.updateWindow(0, image_data, linesize);
 	_videoOutputDevice.presentWindow(0);
 	SDL_Library::getInstance().delay(40); // 25 FPS
 	EventDispatcher::getInstance().pollEvents();

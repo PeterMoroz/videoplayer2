@@ -78,7 +78,7 @@ int Resampler::resampleFrame(const AVFrame* frame)
 	uint8_t** samples = NULL;
 	if (av_samples_alloc_array_and_samples(&samples, NULL, _outChannels, nsamples, static_cast<AVSampleFormat>(_outSampleFormat), 0) < 0)
 	{
-		std::cerr << "Could not allocate memory so store audiosamples!" << std::endl;
+		std::cerr << "Could not allocate memory to store audiosamples!" << std::endl;
 		return 0;
 	}
 

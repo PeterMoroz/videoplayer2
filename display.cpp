@@ -89,7 +89,7 @@ int Display::addWindow(const char* title, int x, int y, int w, int h, PixelForma
 	return 0;
 }
 
-void Display::updateWindow(int wndIndex)
+void Display::updateWindow(int wndIndex, uint8_t* image_data[], int linesize[])
 {
 	void* pixels[1] = { NULL };
 	int pitch[1] = { 0 };
@@ -103,7 +103,7 @@ void Display::updateWindow(int wndIndex)
 		return;
 	}
 
-	std::memcpy(pixels[0], _image_data[0], pitch[0] * _height);
+	std::memcpy(pixels[0], image_data[0], pitch[0] * _height);
 
 	SDL_UnlockTexture(_texture);
 }

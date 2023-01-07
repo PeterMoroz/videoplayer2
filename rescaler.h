@@ -2,16 +2,12 @@
 
 #include <cstdint>
 
-#include "image_buffer_writer.h"
-
 struct SwsContext;
 
 struct AVFrame;
 
-// class ImageBuffer;
 
-
-class Rescaler final : public ImageBufferWriter
+class Rescaler final
 {
 public:
 	enum Flags
@@ -44,6 +40,8 @@ public:
 
 	void scaleFrame(const AVFrame* frame);
 
+	void setOutputBuffer(uint8_t* pixeldata[], int linesize []);
+
 private:
 	SwsContext *_context;
 	int _dstWidth = 0;
@@ -51,4 +49,7 @@ private:
 
 	//uint8_t* _pictureData[4];
 	//int _pictureLinesize[4] = { 0 };
+
+	uint8_t* _pixeldata[4] = { NULL };
+	int _linesize[4] = { 0 };
 };

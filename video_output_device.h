@@ -3,9 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "image_buffer_reader.h"
-
-class VideoOutputDevice : public ImageBufferReader
+class VideoOutputDevice
 {
 public:
 	enum PixelFormat
@@ -22,7 +20,7 @@ public:
 	VideoOutputDevice& operator=(const VideoOutputDevice&) = delete;
 
 	virtual int addWindow(const char* title, int x, int y, int w, int h, PixelFormat pixelFormat) = 0;
-	virtual void updateWindow(int wndIndex) = 0;
+	virtual void updateWindow(int wndIndex, uint8_t* image_data[], int linesize[]) = 0;
 	virtual bool presentWindow(int wndIndex) = 0;
 
 	int getWidth() const { return _width; }
