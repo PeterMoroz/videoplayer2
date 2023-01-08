@@ -1,8 +1,8 @@
 #include "event_dispatcher.h"
 #include "sdl_library.h"
 
+#include <cassert>
 #include <iostream>
-#include <iomanip>
 
 #include <SDL.h>
 
@@ -15,8 +15,10 @@ namespace
 		{
 		case EventDispatcher::Evt_Quit:
 			return "Event_Quit";
+		case EventDispatcher::Evt_RefreshScreen:
+			return "Event_RefreshScreen";
 		default:
-			return "<unknown>";
+			assert(false);
 		}
 		return "";
 	}
@@ -44,39 +46,40 @@ EventDispatcher& EventDispatcher::getInstance()
 	return instance;
 }
 
-void EventDispatcher::pollEvents()
+void EventDispatcher::processEvents()
 {
-	SDL_Event event;
-	EventId eventId = Evt_Unknown;
-	int res = SDL_PollEvent(&event);
-	if (res != 0)
+	while (1)
 	{
-		switch (event.type)
+		SDL_Event event;
+		EventId eventId = Evt_Unknown;
+		int res = SDL_WaitEvent(&event);
+		if (res == 0 || res == 1)
 		{
-		case SDL_QUIT:
-			eventId = Evt_Quit;
-			break;
-		default:
-			;
-		}
+			switch (event.type)
+			{
+			case SDL_QUIT:
+				eventId = Evt_Quit;
+				break;
+			case SDL_USEREVENT + 1:	// UGLY!
+				eventId = Evt_RefreshScreen;
+				break;
+			default:
+				;
+			}
 
-		if (eventId != Evt_Unknown)
-		{
-			auto it = _handlers.find(eventId);
-			if (it != _handlers.cend())
+			if (eventId != Evt_Unknown)
 			{
-				it->second();
-			}
-			else
-			{
-				std::cerr << "No handler for event " << getEventName(eventId) << std::endl;
+				auto it = _handlers.find(eventId);
+				if (it != _handlers.cend())
+				{
+					it->second();
+				}
+				else
+				{
+					std::cerr << "No handler for event " << getEventName(eventId) << std::endl;
+				}
 			}
 		}
-		//else
-		//{
-		//	std::cerr << "Unknown event (SDL) 0x" 
-		//		<< std::hex << std::setw(4) << std::setfill('0') << event.type << std::endl;
-		//}
 	}
 }
 
@@ -84,4 +87,32 @@ bool EventDispatcher::addHandler(EventId eventId, EventHandler&& handler)
 {
 	auto res = _handlers.emplace(std::make_pair(eventId, std::move(handler)));
 	return res.second;
+}
+
+bool EventDispatcher::pushEvent(EventId eventId, void* userdata)
+{
+	SDL_Event event;
+
+	switch (eventId)
+	{
+	case EventDispatcher::Evt_Quit:
+		event.type = SDL_QUIT;
+		break;
+	case EventDispatcher::Evt_RefreshScreen:
+		event.type = SDL_USEREVENT + 1;
+		break;
+	default:
+		std::cerr << "Unknown event " << static_cast<int>(eventId) << std::endl;
+		assert(false);
+	}
+
+	event.user.data1 = userdata;
+
+	int res = SDL_PushEvent(&event);
+	if (res != 1)
+	{
+		std::cerr << "SDL_PushEvent() failed. error: " << SDL_GetError() << std::endl;
+		return false;
+	}
+	return true;
 }

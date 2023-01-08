@@ -5,40 +5,31 @@ extern "C"
 #include <libavutil/imgutils.h>
 }
 
+#include <SDL.h>
 #include <iostream>
 
 
-ImageBuffer::ImageBuffer(ImageBuffer&& obj)
+ImageBuffer::ImageBuffer()
 {
-	for (size_t i = 0; i < 4; i++)
+	_mutex = SDL_CreateMutex();
+	if (!_mutex)
 	{
-		_image_data[i] = obj._image_data[i];
-		_linesize[i] = obj._linesize[i];
-
-		obj._image_data[i] = NULL;
-		obj._linesize[i] = 0;
+		throw std::runtime_error("Could not create SDL mutex");
 	}
-}
 
-ImageBuffer& ImageBuffer::operator=(ImageBuffer&& obj)
-{
-	if (this != &obj)
+	_cond = SDL_CreateCond();
+	if (!_cond)
 	{
-		for (size_t i = 0; i < 4; i++)
-		{
-			_image_data[i] = obj._image_data[i];
-			_linesize[i] = obj._linesize[i];
-
-			obj._image_data[i] = NULL;
-			obj._linesize[i] = 0;
-		}
+		throw std::runtime_error("Could not create SDL cond");
 	}
-	return *this;
 }
 
 ImageBuffer::~ImageBuffer()
 {
 	release();
+
+	SDL_DestroyMutex(_mutex);
+	SDL_DestroyCond(_cond);
 }
 
 bool ImageBuffer::allocate(int width, int height, int format, int align/* = 1*/)
@@ -63,11 +54,50 @@ void ImageBuffer::release()
 	}
 }
 
-void ImageBuffer::getBuffer(uint8_t* image_data[], int linesize[])
+bool ImageBuffer::acquireWrite(uint8_t* image_data[], int linesize[])
+{
+	SDL_LockMutex(_mutex);
+	while (!_empty)
+	{
+		if (SDL_CondWait(_cond, _mutex) == -1)
+		{
+			std::cerr << "SDL_CondWait() failed. error: " << SDL_GetError() << std::endl;
+			SDL_UnlockMutex(_mutex);
+			return false;
+		}
+	}
+	
+	for (size_t i = 0; i < 4; i++)
+	{
+		image_data[i] = _image_data[i];
+		linesize[i] = _linesize[i];
+	}
+
+	SDL_UnlockMutex(_mutex);
+	return true;
+}
+
+void ImageBuffer::releaseWrite()
+{
+	SDL_LockMutex(_mutex);
+	_empty = false;
+	SDL_UnlockMutex(_mutex);
+}
+
+void ImageBuffer::acquireRead(uint8_t* image_data[], int linesize[])
 {
 	for (size_t i = 0; i < 4; i++)
 	{
 		image_data[i] = _image_data[i];
 		linesize[i] = _linesize[i];
 	}
+}
+
+bool ImageBuffer::releaseRead()
+{
+	SDL_LockMutex(_mutex);
+	_empty = true;
+	SDL_CondSignal(_cond);
+	SDL_UnlockMutex(_mutex);
+	return true;
 }

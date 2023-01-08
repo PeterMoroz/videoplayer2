@@ -5,6 +5,7 @@
 #include "resampler.h"
 #include "image_buffer.h"
 #include "packet_queue.h"
+#include "thread.h"
 
 #include <memory>
 
@@ -17,6 +18,9 @@ struct AVFrame;
 
 class Videoplayer final
 {
+	static const int MAX_AUDIOQ_SIZE = 5 * 16 * 1024;
+	static const int MAX_VIDEOQ_SIZE = 5 * 256 * 1024;
+
 public:
 	Videoplayer(VideoOutputDevice& videoOutputDevice, AudioOutputDevice& audioOutputDevice);
 	~Videoplayer();
@@ -36,6 +40,17 @@ private:
 
 	int queryAudioSamples(uint8_t* audioBuffer, int bufferSize);
 
+	int demuxRoutine();
+	int decodeVideoRoutine();
+
+	void scheduleScreenRefresh(std::uint32_t delay);
+	static std::uint32_t onScheduleScreenRefresh(std::uint32_t, void* userdata);
+
+
+	// events' handlers
+	void onQuitEvent();
+	void onRefreshScreenEvent();
+
 private:
 	VideoOutputDevice& _videoOutputDevice;
 	AudioOutputDevice& _audioOutputDevice;
@@ -52,5 +67,9 @@ private:
 	ImageBuffer _pictureBuffer;
 	bool _quit = false;
 	PacketQueue _audioPacketQueue;
+	PacketQueue _videoPacketQueue;
 	int _audioDataLength = 0;
+
+	Thread _demuxThread;
+	Thread _videoDecodeThread;
 };

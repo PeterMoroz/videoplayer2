@@ -30,6 +30,7 @@ public:
 	void Close();
 
 	bool readFrame(AVPacket* packet);
+	bool isReadFailed() const { return _readFailed; }
 
 	int getStreamIndex(StreamType type) const;
 	
@@ -37,4 +38,5 @@ public:
 
 private:
 	AVFormatContext* _format_ctx;
+	bool _readFailed = false;
 };

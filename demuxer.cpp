@@ -62,13 +62,19 @@ void Demuxer::Close()
 
 bool Demuxer::readFrame(AVPacket* packet)
 {
+	bool result = true;
+	_readFailed = false;
 	int ret = av_read_frame(_format_ctx, packet);
 	if (ret < 0)
 	{
-		std::cerr << "av_read_frame() failed. ret = " << ret << std::endl;
-		return false;
+		result = false;
+		if (_format_ctx->pb->error != 0) 
+		{
+			_readFailed = true;
+			std::cerr << "av_read_frame() failed. ret = " << ret << std::endl;
+		}
 	}
-	return true;
+	return result;
 }
 
 int Demuxer::getStreamIndex(StreamType type) const

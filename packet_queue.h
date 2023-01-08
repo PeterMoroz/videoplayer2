@@ -36,11 +36,11 @@ public:
 	PacketQueue(const PacketQueue&) = delete;
 	PacketQueue& operator=(const PacketQueue&) = delete;
 
+	int size() const { return _size; }
+
 private:
 	int _packetsCount = 0;
 	int _size = 0;
-	//SDL_mutex* _mutex = NULL;
-	//SDL_cond* _cond = NULL;
 
 	using MutexDeleter = void(*)(SDL_mutex*);
 	using CondDeleter = void(*)(SDL_cond*);

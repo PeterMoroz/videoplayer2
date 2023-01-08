@@ -2,10 +2,12 @@
 
 #include "audio_output_device.h"
 #include "video_output_device.h"
+
 #include "event_dispatcher.h"
 #include "sdl_library.h"
 
 #include "decoder.h"
+#include "time.h"
 
 extern "C"
 {
@@ -67,15 +69,14 @@ int getChannelLayout(AudioOutputDevice::ChannelLayout channelLayout)
 Videoplayer::Videoplayer(VideoOutputDevice& videoOutputDevice, AudioOutputDevice& audioOutputDevice)
 	: _videoOutputDevice(videoOutputDevice)
 	, _audioOutputDevice(audioOutputDevice)
+	, _demuxThread(std::bind(&Videoplayer::demuxRoutine, this))
+	, _videoDecodeThread(std::bind(&Videoplayer::decodeVideoRoutine, this))
 {
-	auto onQuit = [this]() {
-		_quit = true;
-	};
-
 	using namespace std::placeholders;
 	_audioOutputDevice.setQueryAudioDataCallback(std::bind(&Videoplayer::queryAudioSamples, this, _1, _2));
 
-	EventDispatcher::getInstance().addHandler(EventDispatcher::Evt_Quit, std::move(onQuit));
+	EventDispatcher::getInstance().addHandler(EventDispatcher::Evt_Quit, std::bind(&Videoplayer::onQuitEvent, this));
+	EventDispatcher::getInstance().addHandler(EventDispatcher::Evt_RefreshScreen, std::bind(&Videoplayer::onRefreshScreenEvent, this));
 }
 
 Videoplayer::~Videoplayer()
@@ -147,7 +148,6 @@ bool Videoplayer::Open(const char* url)
 		std::cerr << "Could not allocate picture buffer." << std::endl;
 		return false;
 	}
-
 
 	using namespace std::placeholders;
 	videostreamDecoder->setFrameReceiver(std::bind(&Videoplayer::onVideoFrame, this, _1));
@@ -225,40 +225,23 @@ bool Videoplayer::Open(const char* url)
 
 void Videoplayer::Play()
 {
-	AVPacket packet;
-	av_init_packet(&packet);
+	if (!_demuxThread.create())
+	{
+		throw std::runtime_error("Could not create demuxer thread.");		
+	}
 
-	packet.data = NULL;
-	packet.size = 0;
+	if (!_videoDecodeThread.create())
+	{
+		throw std::runtime_error("Could not create video decoder thread.");
+	}
 
 	_audioOutputDevice.start();
+	scheduleScreenRefresh(40);
 
-	while (_demuxer.readFrame(&packet))
-	{
-		if (packet.stream_index == _videostreamIndex)
-		{
-			if (!_videostreamDecoder->sendPacket(&packet))
-			{
-				std::cerr << "Couldn't send packet to video-decoder." << std::endl;
-				av_packet_unref(&packet);
-				break;
-			}
-		}
-		else if (packet.stream_index == _audiostreamIndex)
-		{
-			if (!_audioPacketQueue.enqueue(&packet))
-			{
-				std::cerr << "Couldn't enqueue packet to audio-queue." << std::endl;
-				av_packet_unref(&packet);
-				break;
-			}
-		}
+	EventDispatcher::getInstance().processEvents();
 
-		if (packet.stream_index != _audiostreamIndex)
-		{
-			av_packet_unref(&packet);
-		}
-	}
+	_demuxThread.waitForFinished();
+	_videoDecodeThread.waitForFinished();
 }
 
 void Videoplayer::Stop()
@@ -281,13 +264,16 @@ void Videoplayer::onVideoFrame(AVFrame* frame)
 	uint8_t* image_data[4] = { NULL };
 	int linesize[4] = { 0 };
 
-	_pictureBuffer.getBuffer(image_data, linesize);
+	if (!_pictureBuffer.acquireWrite(image_data, linesize))
+	{
+		std::cerr << "Could not acquired picture buffer to write." << std::endl;
+		return;
+	}
+
 	_rescaler.setOutputBuffer(image_data, linesize);
 	_rescaler.scaleFrame(frame);
-	_videoOutputDevice.updateWindow(0, image_data, linesize);
-	_videoOutputDevice.presentWindow(0);
-	SDL_Library::getInstance().delay(40); // 25 FPS
-	EventDispatcher::getInstance().pollEvents();
+
+	_pictureBuffer.releaseWrite();
 }
 
 int Videoplayer::queryAudioSamples(uint8_t* audioBuffer, int bufferSize)
@@ -313,4 +299,148 @@ int Videoplayer::queryAudioSamples(uint8_t* audioBuffer, int bufferSize)
 	_resampler.setOutputBuffer(NULL, 0);
 	av_packet_unref(&packet);
 	return _audioDataLength;
+}
+
+int Videoplayer::demuxRoutine()
+{
+	AVPacket packet;
+	av_init_packet(&packet);
+
+	packet.data = NULL;
+	packet.size = 0;
+
+	bool failed = false;
+
+	while (1)
+	{
+		if (_audioPacketQueue.size() > MAX_AUDIOQ_SIZE ||
+			_videoPacketQueue.size() > MAX_VIDEOQ_SIZE)
+		{
+			Time::delay(10);
+			continue;
+		}
+
+		if (!_demuxer.readFrame(&packet))
+		{
+			if (!_demuxer.isReadFailed()) 
+			{	// no error. probably EOF, wait for user input
+				Time::delay(100);
+				continue;
+			}
+			else 
+			{
+				failed = true;
+				break;
+			}
+		}
+
+		if (packet.stream_index == _videostreamIndex)
+		{
+			if (!_videostreamDecoder->sendPacket(&packet))
+			{
+				std::cerr << "Couldn't send packet to video-decoder." << std::endl;
+				av_packet_unref(&packet);
+				failed = true;
+				break;
+			}
+		}
+		else if (packet.stream_index == _audiostreamIndex)
+		{
+			if (!_audioPacketQueue.enqueue(&packet))
+			{
+				std::cerr << "Couldn't enqueue packet to audio-queue." << std::endl;
+				av_packet_unref(&packet);
+				failed = true;
+				break;
+			}
+		}
+		else
+		{
+			av_packet_unref(&packet);
+		}
+	}
+
+	if (!failed)
+	{
+		// TO DO: check of state variables should be refactored. active wait is bad idea
+		while (!_quit)
+		{
+			Time::delay(100);
+		}
+	}
+
+	// TO DO: push quit event
+
+	return 0;
+}
+
+int Videoplayer::decodeVideoRoutine()
+{
+	AVPacket packet;
+	bool failed = false;
+	while (1)
+	{
+		if (!_videoPacketQueue.dequeue(&packet))
+		{
+			std::cerr << "Couldn't dequeue video-packet." << std::endl;
+			failed = true;
+			break;
+		}
+
+		if (!_videostreamDecoder->sendPacket(&packet))
+		{
+			std::cerr << "Couldn't send packet to video-decoder." << std::endl;
+			av_packet_unref(&packet);
+			failed = true;
+			break;
+		}
+
+		av_packet_unref(&packet);
+	}
+	return 0;
+}
+
+void Videoplayer::scheduleScreenRefresh(std::uint32_t delay)
+{
+	if (!Time::getInstance().addTimer(&Videoplayer::onScheduleScreenRefresh, delay, this))
+	{
+		std::cerr << "Could not create timer to screen refresh. " << std::endl;
+	}
+}
+
+std::uint32_t Videoplayer::onScheduleScreenRefresh(std::uint32_t, void* userdata)
+{
+	if (!EventDispatcher::getInstance().pushEvent(EventDispatcher::Evt_RefreshScreen, userdata))
+	{
+		std::cerr << "Could not schedule refresh screen event." << std::endl;
+	}
+	return 0;
+}
+
+void Videoplayer::onQuitEvent()
+{
+	_quit = true;
+}
+
+void Videoplayer::onRefreshScreenEvent()
+{
+	if (_pictureBuffer.empty()) 
+	{
+		scheduleScreenRefresh(40);
+	}
+	else
+	{
+		scheduleScreenRefresh(80);
+
+		uint8_t* image_data[4] = { NULL };
+		int linesize[4] = { 0 };
+
+		_pictureBuffer.acquireRead(image_data, linesize);
+		_videoOutputDevice.updateWindow(0, image_data, linesize);
+		if (!_pictureBuffer.releaseRead())
+		{
+			std::cerr << "An error when release read operation on picture buffer." << std::endl;
+		}
+		_videoOutputDevice.presentWindow(0);		
+	}
 }

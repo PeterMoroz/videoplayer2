@@ -15,7 +15,6 @@ public:
 
 private:
 
-	// friend void audioCallback(void* userdata, uint8_t* stream, int length);
 	static void audioCallback(void* userdata, uint8_t* stream, int length);
 	void handleAudioCallback(uint8_t* stream, int length);
 

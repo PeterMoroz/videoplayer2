@@ -76,13 +76,6 @@ bool PacketQueue::enqueue(AVPacket* packet)
 		return false;
 	}
 
-	//if (SDL_LockMutex(_mutex.get()) != 0)
-	//{
-	//	std::cerr << "SDL_LockMutex() failed. error: " << SDL_GetError() << std::endl;
-	//	av_free(pktl);
-	//	return false;
-	//}
-
 	Lock lock(_mutex.get());
 	if (!lock.locked())
 	{

@@ -6,11 +6,6 @@
 
 #include <SDL.h>
 
-//static void audioCallback(void* userdata, uint8_t* stream, int length)
-//{
-//	Speaker* speaker = static_cast<Speaker*>(userdata);
-//	speaker->handleAudioCallback(stream, length);
-//}
 
 Speaker::Speaker()
 {

@@ -36,8 +36,6 @@ public:
 	bool init(int srcWidth, int srcHeight, int srcFormat, 
 			int dstWidth, int dstHeight, int dstFormat, int flags);
 
-	// void setOutputBuffer(ImageBuffer* imageBuffer);
-
 	void scaleFrame(const AVFrame* frame);
 
 	void setOutputBuffer(uint8_t* pixeldata[], int linesize []);
@@ -46,9 +44,6 @@ private:
 	SwsContext *_context;
 	int _dstWidth = 0;
 	int _dstHeight = 0;
-
-	//uint8_t* _pictureData[4];
-	//int _pictureLinesize[4] = { 0 };
 
 	uint8_t* _pixeldata[4] = { NULL };
 	int _linesize[4] = { 0 };
