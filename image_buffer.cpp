@@ -8,28 +8,56 @@ extern "C"
 #include <SDL.h>
 #include <iostream>
 
+ImageBuffer::Lock::Lock(SDL_mutex* mutex)
+	: _mutex(mutex)
+{
+	if (SDL_LockMutex(_mutex) < 0)
+	{
+		std::cerr << "SDL_LockMutex() failed. error: " << SDL_GetError() << std::endl;
+	}
+	else
+	{
+		_locked = true;
+	}
+}
+
+ImageBuffer::Lock::~Lock()
+{
+	if (_locked)
+	{
+		if (SDL_UnlockMutex(_mutex) < 0)
+		{
+			std::cerr << "SDL_UnlockMutex() failed. error: " << SDL_GetError() << std::endl;
+		}
+	}
+}
+
 
 ImageBuffer::ImageBuffer()
+	: _mutex(NULL, &SDL_DestroyMutex)
+	, _cond(NULL, &SDL_DestroyCond)
 {
-	_mutex = SDL_CreateMutex();
-	if (!_mutex)
+	std::unique_ptr<SDL_mutex, MutexDeleter> mutex(SDL_CreateMutex(), &SDL_DestroyMutex);
+	if (!mutex)
 	{
-		throw std::runtime_error("Could not create SDL mutex");
+		std::cerr << "SDL_CreateMutex() failed. error: " << SDL_GetError() << std::endl;
+		throw std::runtime_error("Couldn't create SDL mutex.");
 	}
 
-	_cond = SDL_CreateCond();
-	if (!_cond)
+	std::unique_ptr<SDL_cond, CondDeleter> cond(SDL_CreateCond(), &SDL_DestroyCond);
+	if (!cond)
 	{
-		throw std::runtime_error("Could not create SDL cond");
+		std::cerr << "SDL_CreateCond() failed. error: " << SDL_GetError() << std::endl;
+		throw std::runtime_error("Couldn't create SDL cond.");
 	}
+
+	_mutex.swap(mutex);
+	_cond.swap(cond);
 }
 
 ImageBuffer::~ImageBuffer()
 {
 	release();
-
-	SDL_DestroyMutex(_mutex);
-	SDL_DestroyCond(_cond);
 }
 
 bool ImageBuffer::allocate(int width, int height, int format, int align/* = 1*/)
@@ -56,13 +84,17 @@ void ImageBuffer::release()
 
 bool ImageBuffer::acquireWrite(uint8_t* image_data[], int linesize[])
 {
-	SDL_LockMutex(_mutex);
+	Lock lock(_mutex.get());
+	if (!lock.locked())
+	{
+		return false;
+	}
+
 	while (!_empty)
 	{
-		if (SDL_CondWait(_cond, _mutex) == -1)
+		if (SDL_CondWait(_cond.get(), _mutex.get()) == -1)
 		{
 			std::cerr << "SDL_CondWait() failed. error: " << SDL_GetError() << std::endl;
-			SDL_UnlockMutex(_mutex);
 			return false;
 		}
 	}
@@ -73,15 +105,18 @@ bool ImageBuffer::acquireWrite(uint8_t* image_data[], int linesize[])
 		linesize[i] = _linesize[i];
 	}
 
-	SDL_UnlockMutex(_mutex);
 	return true;
 }
 
-void ImageBuffer::releaseWrite()
+bool ImageBuffer::releaseWrite()
 {
-	SDL_LockMutex(_mutex);
+	Lock lock(_mutex.get());
+	if (!lock.locked())
+	{
+		return false;
+	}
 	_empty = false;
-	SDL_UnlockMutex(_mutex);
+	return true;
 }
 
 void ImageBuffer::acquireRead(uint8_t* image_data[], int linesize[])
@@ -95,9 +130,12 @@ void ImageBuffer::acquireRead(uint8_t* image_data[], int linesize[])
 
 bool ImageBuffer::releaseRead()
 {
-	SDL_LockMutex(_mutex);
+	Lock lock(_mutex.get());
+	if (!lock.locked())
+	{
+		return false;
+	}
 	_empty = true;
-	SDL_CondSignal(_cond);
-	SDL_UnlockMutex(_mutex);
+	SDL_CondSignal(_cond.get());
 	return true;
 }
