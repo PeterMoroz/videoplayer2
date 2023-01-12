@@ -12,6 +12,7 @@ public:
 
 	bool init(int sampleRate, int channelsNum, int samplesNum, SampleFormat sampleFormat) override;
 	void start() override;
+	void stop() override;
 
 private:
 

@@ -47,4 +47,3 @@ int Thread::waitForFinished()
 	_thread = NULL;
 	return status;
 }
-

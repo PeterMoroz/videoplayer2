@@ -50,6 +50,7 @@ private:
 	// events' handlers
 	void onQuitEvent();
 	void onRefreshScreenEvent();
+	void onDemuxFinished();
 
 private:
 	VideoOutputDevice& _videoOutputDevice;
@@ -65,7 +66,6 @@ private:
 	Resampler _resampler;
 
 	ImageBuffer _pictureBuffer;
-	bool _quit = false;
 	PacketQueue _audioPacketQueue;
 	PacketQueue _videoPacketQueue;
 	int _audioDataLength = 0;

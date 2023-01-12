@@ -109,7 +109,19 @@ bool Speaker::init(int sampleRate, int channelsNum, int samplesNum, SampleFormat
 
 void Speaker::start()
 {
-	SDL_PauseAudioDevice(_audioDeviceId, 0);
+	if (_audioDeviceId != 0)
+	{
+		SDL_PauseAudioDevice(_audioDeviceId, 0);
+	}
+}
+
+void Speaker::stop()
+{
+	if (_audioDeviceId != 0)
+	{
+		SDL_CloseAudioDevice(_audioDeviceId);
+	}
+	_audioDeviceId = 0;
 }
 
 void Speaker::audioCallback(void* userdata, uint8_t* stream, int length)
@@ -132,7 +144,7 @@ void Speaker::handleAudioCallback(uint8_t* stream, int length)
 				decodedLength = _queryAudioData(_audioBuffer, sizeof(_audioBuffer));
 			}
 
-			if (decodedLength < 0)
+			if (decodedLength <= 0)
 			{
 				_audioDataLength = 1024;
 				std::memset(_audioBuffer, 0, _audioDataLength);

@@ -17,6 +17,8 @@ namespace
 			return "Event_Quit";
 		case EventDispatcher::Evt_RefreshScreen:
 			return "Event_RefreshScreen";
+		case EventDispatcher::Evt_DemuxFinished:
+			return "Event_DemuxFinished";
 		default:
 			assert(false);
 		}
@@ -48,7 +50,8 @@ EventDispatcher& EventDispatcher::getInstance()
 
 void EventDispatcher::processEvents()
 {
-	while (1)
+	_processEvents = true;
+	while (_processEvents)
 	{
 		SDL_Event event;
 		EventId eventId = Evt_Unknown;
@@ -62,6 +65,9 @@ void EventDispatcher::processEvents()
 				break;
 			case SDL_USEREVENT + 1:	// UGLY!
 				eventId = Evt_RefreshScreen;
+				break;
+			case SDL_USEREVENT + 2:
+				eventId = Evt_DemuxFinished;
 				break;
 			default:
 				;
@@ -89,7 +95,7 @@ bool EventDispatcher::addHandler(EventId eventId, EventHandler&& handler)
 	return res.second;
 }
 
-bool EventDispatcher::pushEvent(EventId eventId, void* userdata)
+bool EventDispatcher::pushEvent(EventId eventId, void* userdata /*= NULL*/)
 {
 	SDL_Event event;
 
@@ -100,6 +106,9 @@ bool EventDispatcher::pushEvent(EventId eventId, void* userdata)
 		break;
 	case EventDispatcher::Evt_RefreshScreen:
 		event.type = SDL_USEREVENT + 1;
+		break;
+	case EventDispatcher::Evt_DemuxFinished:
+		event.type = SDL_USEREVENT + 2;
 		break;
 	default:
 		std::cerr << "Unknown event " << static_cast<int>(eventId) << std::endl;
@@ -115,4 +124,9 @@ bool EventDispatcher::pushEvent(EventId eventId, void* userdata)
 		return false;
 	}
 	return true;
+}
+
+void EventDispatcher::stopEventProcessing()
+{
+	_processEvents = false;
 }

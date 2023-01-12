@@ -11,6 +11,7 @@ public:
 		Evt_Unknown = 0,
 		Evt_Quit,
 		Evt_RefreshScreen,
+		Evt_DemuxFinished,
 	};
 
 	using EventHandler = std::function<void(void)>;
@@ -21,7 +22,9 @@ public:
 
 	void processEvents();
 	bool addHandler(EventId eventId, EventHandler&& handler);
-	bool pushEvent(EventId eventId, void* userdata);
+	bool pushEvent(EventId eventId, void* userdata = NULL);
+
+	void stopEventProcessing();
 
 private:
 	EventDispatcher();
@@ -31,4 +34,5 @@ private:
 
 private:
 	std::unordered_map<EventId, EventHandler> _handlers;
+	bool _processEvents = false;
 };

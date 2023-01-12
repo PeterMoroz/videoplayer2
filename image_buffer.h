@@ -39,18 +39,17 @@ public:
 	bool releaseRead();
 
 	bool empty() const { return _empty; }
+	bool isWaiting() const { return _isWaiting; }
 
 private:
 	uint8_t* _image_data[4] = { NULL };
 	int _linesize[4] = { 0 };
 	bool _empty = true;
+	bool _isWaiting = false;
 
 	using MutexDeleter = void(*)(SDL_mutex*);
 	using CondDeleter = void(*)(SDL_cond*);
 
 	std::unique_ptr<SDL_mutex, MutexDeleter> _mutex;
 	std::unique_ptr<SDL_cond, CondDeleter> _cond;
-
-	//SDL_mutex* _mutex = NULL;
-	//SDL_cond* _cond = NULL;
 };

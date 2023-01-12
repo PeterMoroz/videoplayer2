@@ -104,10 +104,12 @@ bool PacketQueue::enqueue(AVPacket* packet)
 	return true;
 }
 
-bool PacketQueue::dequeue(AVPacket* packet)
+int PacketQueue::dequeue(AVPacket* packet)
 {
 	bool ret = true;
 	AVPacketList* pktl = NULL;
+
+	_wakeUpEnforced = false;
 
 	Lock lock(_mutex.get());
 	if (!lock.locked())
@@ -127,16 +129,33 @@ bool PacketQueue::dequeue(AVPacket* packet)
 			_size -= pktl->pkt.size;
 			*packet = pktl->pkt;
 			av_free(pktl);
-			return true;
+			return 1;
+		}
+		
+		if (_wakeUpEnforced || _nonBlockingDequeue)
+		{	// has been woke but no data - exit
+			// or no need wait data 
+			return 0;
 		}
 
 		if (SDL_CondWait(_cond.get(), _mutex.get()) != 0)
 		{
 			std::cerr << "SDL_CondWait() failed. error: " << SDL_GetError() << std::endl;
-			return false;
+			return -1;
 		}
 	}
 
 	// unreachable
+	return 0;
+}
+
+bool PacketQueue::wakeUp()
+{
+	if (SDL_CondSignal(_cond.get()) != 0)
+	{
+		std::cerr << "SDL_CondSignal() failed. error: " << SDL_GetError() << std::endl;
+		return false;
+	}
+	_wakeUpEnforced = true;
 	return true;
 }

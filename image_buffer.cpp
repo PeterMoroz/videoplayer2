@@ -92,11 +92,13 @@ bool ImageBuffer::acquireWrite(uint8_t* image_data[], int linesize[])
 
 	while (!_empty)
 	{
+		_isWaiting = true;
 		if (SDL_CondWait(_cond.get(), _mutex.get()) == -1)
 		{
 			std::cerr << "SDL_CondWait() failed. error: " << SDL_GetError() << std::endl;
 			return false;
 		}
+		_isWaiting = false;
 	}
 	
 	for (size_t i = 0; i < 4; i++)

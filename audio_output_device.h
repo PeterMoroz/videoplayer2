@@ -33,6 +33,7 @@ public:
 
 	virtual bool init(int sampleRate, int channelsNum, int samplesNum, SampleFormat sampleFormat) = 0;
 	virtual void start() = 0;
+	virtual void stop() = 0;
 
 	int getNumberOfChannels() const { return _numOfChannels; }
 	SampleFormat getSampleFormat() const { return _sampleFormat; }

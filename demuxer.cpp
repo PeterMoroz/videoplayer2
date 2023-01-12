@@ -28,18 +28,23 @@ bool Demuxer::Open(const char* url)
 		Close();
 	}
 
+	char errbuf[AV_ERROR_MAX_STRING_SIZE + 1];
 	int ret = 0;
 	ret = avformat_open_input(&_format_ctx, url, NULL, NULL);
 	if (ret < 0)
 	{
-		std::cerr << "avformat_open_input() failed. ret: " << ret << std::endl;
+		av_strerror(ret, errbuf, sizeof(errbuf));
+		std::cerr << "avformat_open_input() failed. ret: " 
+			<< ret << "(" << errbuf << ")" << std::endl;
 		return false;
 	}
 
 	ret = avformat_find_stream_info(_format_ctx, NULL);
 	if (ret < 0)
 	{
-		std::cerr << "avformat_find_stream_info() failed. ret: " << ret << std::endl;
+		av_strerror(ret, errbuf, sizeof(errbuf));
+		std::cerr << "avformat_find_stream_info() failed. ret: " 
+			<< ret << "(" << errbuf << ")" << std::endl;
 		return false;
 	}
 
@@ -71,7 +76,10 @@ bool Demuxer::readFrame(AVPacket* packet)
 		if (_format_ctx->pb->error != 0) 
 		{
 			_readFailed = true;
-			std::cerr << "av_read_frame() failed. ret = " << ret << std::endl;
+			char errbuf[AV_ERROR_MAX_STRING_SIZE + 1];
+			av_strerror(ret, errbuf, sizeof(errbuf));
+			std::cerr << "av_read_frame() failed. ret = " 
+				<< ret << "(" << errbuf << ")" << std::endl;
 		}
 	}
 	return result;
@@ -130,11 +138,14 @@ std::unique_ptr<Decoder> Demuxer::createDecoder(int streamIndex)
 		return nullptr;
 	}
 
+	char errbuf[AV_ERROR_MAX_STRING_SIZE + 1];
 	int ret = -1;
 	ret = avcodec_parameters_to_context(codec_context, stream->codecpar);
 	if (ret < 0)
 	{
-		std::cerr << "Could not copy codec parameters to decoder context. ret = " << ret << std::endl;
+		av_strerror(ret, errbuf, sizeof(errbuf));
+		std::cerr << "Could not copy codec parameters to decoder context. ret = " 
+			<< ret << "(" << errbuf << ")" << std::endl;
 		avcodec_free_context(&codec_context);
 		return nullptr;
 	}
@@ -142,7 +153,9 @@ std::unique_ptr<Decoder> Demuxer::createDecoder(int streamIndex)
 	ret = avcodec_open2(codec_context, codec, NULL);
 	if (ret < 0)
 	{
-		std::cerr << "Could not open  codec. ret = " << ret << std::endl;
+		av_strerror(ret, errbuf, sizeof(errbuf));
+		std::cerr << "Could not open  codec. ret = " 
+			<< ret << "(" << errbuf << ")" << std::endl;
 		avcodec_free_context(&codec_context);
 		return nullptr;
 	}

@@ -31,16 +31,22 @@ public:
 	~PacketQueue();
 
 	bool enqueue(AVPacket* packet);
-	bool dequeue(AVPacket* packet);
+	int dequeue(AVPacket* packet);
 
 	PacketQueue(const PacketQueue&) = delete;
 	PacketQueue& operator=(const PacketQueue&) = delete;
 
+	int packetsCount() const { return _packetsCount; }
 	int size() const { return _size; }
+
+	bool wakeUp();
+	void setNonBlockingDequeue(bool val) { _nonBlockingDequeue = val; }
 
 private:
 	int _packetsCount = 0;
 	int _size = 0;
+	bool _wakeUpEnforced = false;
+	bool _nonBlockingDequeue = false;
 
 	using MutexDeleter = void(*)(SDL_mutex*);
 	using CondDeleter = void(*)(SDL_cond*);

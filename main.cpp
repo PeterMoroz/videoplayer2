@@ -5,6 +5,7 @@
 #include "videoplayer.h"
 #include "speaker.h"
 #include "display.h"
+#include "event_dispatcher.h"
 
 int main(int argc, char* argv[])
 {
@@ -49,6 +50,7 @@ int main(int argc, char* argv[])
 
 		videoplayer.Open(argv[1]);
 		videoplayer.Play();
+		EventDispatcher::getInstance().processEvents();
 	}
 	catch (const std::exception& ex) {
 		std::cerr << "Exception: " << ex.what() << "\nLocation: "

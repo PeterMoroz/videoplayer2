@@ -101,10 +101,13 @@ bool Decoder::getParameter(const char* key, int& value) const
 
 bool Decoder::sendPacket(const AVPacket *packet)
 {
+	char errbuf[AV_ERROR_MAX_STRING_SIZE + 1];
 	int ret = avcodec_send_packet(_codec_context, packet);
 	if (ret < 0)
 	{
-		std::cerr << "avcodec_send_packet() failed. ret = " << ret << std::endl;
+		av_strerror(ret, errbuf, sizeof(errbuf));
+		std::cerr << "avcodec_send_packet() failed. ret = " << ret 
+			<< "(" << errbuf << ")" << std::endl;
 		return false;
 	}
 
@@ -115,7 +118,9 @@ bool Decoder::sendPacket(const AVPacket *packet)
 			break;
 		else if (ret < 0)
 		{
-			std::cerr << "avcodec_receive_frame() failed. ret = " << ret << std::endl;
+			av_strerror(ret, errbuf, sizeof(errbuf));
+			std::cerr << "avcodec_receive_frame() failed. ret = " << ret 
+				<< "(" << errbuf << ")" << std::endl;
 			return false;
 		}
 

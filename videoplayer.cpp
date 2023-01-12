@@ -75,8 +75,12 @@ Videoplayer::Videoplayer(VideoOutputDevice& videoOutputDevice, AudioOutputDevice
 	using namespace std::placeholders;
 	_audioOutputDevice.setQueryAudioDataCallback(std::bind(&Videoplayer::queryAudioSamples, this, _1, _2));
 
+	// nonblocking dequeing audio packets, otherwise audio device will hang when stopping
+	_audioPacketQueue.setNonBlockingDequeue(true);
+
 	EventDispatcher::getInstance().addHandler(EventDispatcher::Evt_Quit, std::bind(&Videoplayer::onQuitEvent, this));
 	EventDispatcher::getInstance().addHandler(EventDispatcher::Evt_RefreshScreen, std::bind(&Videoplayer::onRefreshScreenEvent, this));
+	EventDispatcher::getInstance().addHandler(EventDispatcher::Evt_DemuxFinished, std::bind(&Videoplayer::onDemuxFinished, this));
 }
 
 Videoplayer::~Videoplayer()
@@ -225,23 +229,13 @@ bool Videoplayer::Open(const char* url)
 
 void Videoplayer::Play()
 {
+	_audioOutputDevice.start();
+	scheduleScreenRefresh(40);
+
 	if (!_demuxThread.create())
 	{
 		throw std::runtime_error("Could not create demuxer thread.");		
 	}
-
-	if (!_videoDecodeThread.create())
-	{
-		throw std::runtime_error("Could not create video decoder thread.");
-	}
-
-	_audioOutputDevice.start();
-	scheduleScreenRefresh(40);
-
-	EventDispatcher::getInstance().processEvents();
-
-	_demuxThread.waitForFinished();
-	_videoDecodeThread.waitForFinished();
 }
 
 void Videoplayer::Stop()
@@ -279,10 +273,11 @@ void Videoplayer::onVideoFrame(AVFrame* frame)
 int Videoplayer::queryAudioSamples(uint8_t* audioBuffer, int bufferSize)
 {
 	AVPacket packet;
-	if (!_audioPacketQueue.dequeue(&packet))
+	int dequeueRet = _audioPacketQueue.dequeue(&packet);
+	if (dequeueRet <= 0)
 	{
-		std::cerr << "Couldn't dequeue audio-packet." << std::endl;
-		return -1;
+		//std::cerr << "Couldn't dequeue audio-packet." << std::endl;
+		return dequeueRet;
 	}
 
 	// TO DO: need to be refactored. pretty fuzzy. not decided yet how to make it more clear.
@@ -311,6 +306,12 @@ int Videoplayer::demuxRoutine()
 
 	bool failed = false;
 
+	if (!_videoDecodeThread.create())
+	{
+		std::cerr << "Could not create video decoder thread." << std::endl;
+		return 0;
+	}
+
 	while (1)
 	{
 		if (_audioPacketQueue.size() > MAX_AUDIOQ_SIZE ||
@@ -323,9 +324,8 @@ int Videoplayer::demuxRoutine()
 		if (!_demuxer.readFrame(&packet))
 		{
 			if (!_demuxer.isReadFailed()) 
-			{	// no error. probably EOF, wait for user input
-				Time::delay(100);
-				continue;
+			{	// no error, probably EOF
+				break;
 			}
 			else 
 			{
@@ -360,16 +360,16 @@ int Videoplayer::demuxRoutine()
 		}
 	}
 
-	if (!failed)
+	while (_videoPacketQueue.size() != 0) 
 	{
-		// TO DO: check of state variables should be refactored. active wait is bad idea
-		while (!_quit)
-		{
-			Time::delay(100);
-		}
+		Time::delay(100);
 	}
+	// unblock packet queue to give decoding thread opportunity to finish
+	_videoPacketQueue.wakeUp();
 
-	// TO DO: push quit event
+	_videoDecodeThread.waitForFinished();
+
+	EventDispatcher::getInstance().pushEvent(EventDispatcher::Evt_DemuxFinished, NULL);
 
 	return 0;
 }
@@ -377,13 +377,12 @@ int Videoplayer::demuxRoutine()
 int Videoplayer::decodeVideoRoutine()
 {
 	AVPacket packet;
-	bool failed = false;
 	while (1)
 	{
-		if (!_videoPacketQueue.dequeue(&packet))
+		int dequeueRet = _videoPacketQueue.dequeue(&packet);
+		if (dequeueRet <= 0)
 		{
-			std::cerr << "Couldn't dequeue video-packet." << std::endl;
-			failed = true;
+			// std::cerr << "Couldn't dequeue video-packet." << std::endl;
 			break;
 		}
 
@@ -391,12 +390,12 @@ int Videoplayer::decodeVideoRoutine()
 		{
 			std::cerr << "Couldn't send packet to video-decoder." << std::endl;
 			av_packet_unref(&packet);
-			failed = true;
 			break;
 		}
 
 		av_packet_unref(&packet);
 	}
+
 	return 0;
 }
 
@@ -410,7 +409,7 @@ void Videoplayer::scheduleScreenRefresh(std::uint32_t delay)
 
 std::uint32_t Videoplayer::onScheduleScreenRefresh(std::uint32_t, void* userdata)
 {
-	if (!EventDispatcher::getInstance().pushEvent(EventDispatcher::Evt_RefreshScreen, userdata))
+	if (!EventDispatcher::getInstance().pushEvent(EventDispatcher::Evt_RefreshScreen, NULL))
 	{
 		std::cerr << "Could not schedule refresh screen event." << std::endl;
 	}
@@ -419,7 +418,7 @@ std::uint32_t Videoplayer::onScheduleScreenRefresh(std::uint32_t, void* userdata
 
 void Videoplayer::onQuitEvent()
 {
-	_quit = true;
+	EventDispatcher::getInstance().stopEventProcessing();
 }
 
 void Videoplayer::onRefreshScreenEvent()
@@ -443,4 +442,11 @@ void Videoplayer::onRefreshScreenEvent()
 		}
 		_videoOutputDevice.presentWindow(0);		
 	}
+}
+
+void Videoplayer::onDemuxFinished()
+{
+	_demuxThread.waitForFinished();
+	_audioOutputDevice.stop();
+	EventDispatcher::getInstance().pushEvent(EventDispatcher::Evt_Quit, NULL);
 }
