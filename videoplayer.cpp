@@ -137,6 +137,15 @@ bool Videoplayer::Open(const char* url)
 		return false;
 	}
 
+	double videoTimebase = 0.0;
+	if (!videostreamDecoder->getParameter("timebase", videoTimebase))
+	{
+		std::cerr << "Could not get parameter (timebase) of videostream." << std::endl;
+		return false;
+	}
+
+	_videoClock.setTimebase(videoTimebase);
+
 	if (!_rescaler.init(srcFrameWidth, srcFrameHeight, srcFrameFormat,
 		dstFrameWidth, dstFrameHeight, dstFrameFormat,
 		Rescaler::Bilinear | Rescaler::PrintInfo))
@@ -210,6 +219,28 @@ bool Videoplayer::Open(const char* url)
 		return false;
 	}
 
+	double audioTimebase = 0.0;
+	if (!audiostreamDecoder->getParameter("timebase", audioTimebase))
+	{
+		std::cerr << "Could not get parameter (timebase) of audiostream." << std::endl;
+		return false;
+	}
+
+	_audioClock.setTimebase(audioTimebase);
+
+
+	if (outSampleFormat == AV_SAMPLE_FMT_S16)
+		_audioClock.setBytesPerSecond(outSampleRate, outChannels, 2);
+	else if (outSampleFormat == AV_SAMPLE_FMT_S32)
+		_audioClock.setBytesPerSecond(outSampleRate, outChannels, 4);
+	else if (outSampleFormat == AV_SAMPLE_FMT_FLT)
+		_audioClock.setBytesPerSecond(outSampleRate, outChannels, 4);
+	else
+	{
+		std::cerr << "Unknown sample format." << std::endl;
+		return false;
+	}
+
 	if (!_resampler.init(inChannels, outChannels, 
 						inSampleFormat, outSampleFormat,
 						inChannelLayout, outChannelLayout,
@@ -229,6 +260,7 @@ bool Videoplayer::Open(const char* url)
 
 void Videoplayer::Play()
 {
+	_videoClock.reset();
 	_audioOutputDevice.start();
 	scheduleScreenRefresh(40);
 
@@ -250,7 +282,10 @@ void Videoplayer::releasePictureBuffer()
 
 void Videoplayer::onAudioFrame(AVFrame* frame)
 {
-	_audioDataLength += _resampler.resampleFrame(frame);
+	// _audioDataLength += _resampler.resampleFrame(frame);
+	int nbytes = _resampler.resampleFrame(frame);
+	_audioClock.update(nbytes);
+	_audioDataLength += nbytes;
 }
 
 void Videoplayer::onVideoFrame(AVFrame* frame)
@@ -264,9 +299,12 @@ void Videoplayer::onVideoFrame(AVFrame* frame)
 		return;
 	}
 
+	double pts = _videoClock.update(frame);
+
 	_rescaler.setOutputBuffer(image_data, linesize);
 	_rescaler.scaleFrame(frame);
 
+	_pictureBuffer.setPTS(pts);
 	_pictureBuffer.releaseWrite();
 }
 
@@ -353,6 +391,8 @@ int Videoplayer::demuxRoutine()
 				failed = true;
 				break;
 			}
+
+			_audioClock.update(&packet);
 		}
 		else
 		{
@@ -429,17 +469,21 @@ void Videoplayer::onRefreshScreenEvent()
 	}
 	else
 	{
-		scheduleScreenRefresh(80);
+		// scheduleScreenRefresh(80);
 
 		uint8_t* image_data[4] = { NULL };
 		int linesize[4] = { 0 };
 
 		_pictureBuffer.acquireRead(image_data, linesize);
+		double pts = _pictureBuffer.getPTS();
 		_videoOutputDevice.updateWindow(0, image_data, linesize);
 		if (!_pictureBuffer.releaseRead())
 		{
 			std::cerr << "An error when release read operation on picture buffer." << std::endl;
 		}
+
+		const double delay = _videoClock.calculateFrameDelay(pts, _audioClock.getValue());
+		scheduleScreenRefresh(delay);
 		_videoOutputDevice.presentWindow(0);		
 	}
 }

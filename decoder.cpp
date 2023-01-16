@@ -35,7 +35,8 @@ Decoder::Decoder(AVCodecContext* codec_context)
 	}
 }
 
-bool Decoder::getParameter(const char* key, int& value) const
+template <>
+bool Decoder::getParameter<int>(const char* key, int& value) const
 {
 	if (!_codec_context)
 	{
@@ -79,7 +80,7 @@ bool Decoder::getParameter(const char* key, int& value) const
 		}
 		else if (!std::strcmp(key, "channel-layout"))
 		{
-			value = _codec_context->channel_layout;
+			value = static_cast<int>(_codec_context->channel_layout);
 			return true;
 		}
 		else if (!std::strcmp(key, "sample-rate"))
@@ -96,6 +97,23 @@ bool Decoder::getParameter(const char* key, int& value) const
 	}
 
 	// unreachable
+	return false;
+}
+
+template <>
+bool Decoder::getParameter<double>(const char* key, double& value) const
+{
+	if (!_codec_context)
+	{
+		throw std::logic_error("Could't get decoder's parameter. Invalid codec context.");
+	}
+
+	if (!std::strcmp(key, "timebase"))
+	{
+		value = av_q2d(_codec_context->time_base);
+		return true;
+	}
+
 	return false;
 }
 

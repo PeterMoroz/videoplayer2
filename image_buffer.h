@@ -41,11 +41,16 @@ public:
 	bool empty() const { return _empty; }
 	bool isWaiting() const { return _isWaiting; }
 
+	void setPTS(const double& pts);
+	double getPTS() const;
+
 private:
 	uint8_t* _image_data[4] = { NULL };
 	int _linesize[4] = { 0 };
 	bool _empty = true;
 	bool _isWaiting = false;
+
+	double _pts = 0.0;
 
 	using MutexDeleter = void(*)(SDL_mutex*);
 	using CondDeleter = void(*)(SDL_cond*);

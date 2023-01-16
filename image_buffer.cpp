@@ -107,6 +107,9 @@ bool ImageBuffer::acquireWrite(uint8_t* image_data[], int linesize[])
 		linesize[i] = _linesize[i];
 	}
 
+	// TO DO: it is needed a "lock" variable which will leave no opportunity to race conditions, like 
+	// "read untill write is not finished", "write to buffer which is currently been writtening".
+
 	return true;
 }
 
@@ -140,4 +143,14 @@ bool ImageBuffer::releaseRead()
 	_empty = true;
 	SDL_CondSignal(_cond.get());
 	return true;
+}
+
+void ImageBuffer::setPTS(const double& pts)
+{
+	_pts = pts;
+}
+
+double ImageBuffer::getPTS() const
+{
+	return _pts;
 }

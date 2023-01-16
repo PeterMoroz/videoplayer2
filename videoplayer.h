@@ -7,6 +7,9 @@
 #include "packet_queue.h"
 #include "thread.h"
 
+#include "audio_clock.h"
+#include "video_clock.h"
+
 #include <memory>
 
 class AudioOutputDevice;
@@ -72,4 +75,16 @@ private:
 
 	Thread _demuxThread;
 	Thread _videoDecodeThread;
+
+	//double _audioTimebase = 0.0;
+	//double _videoTimebase = 0.0;
+
+	//// TO DO: use atomic 
+	//// (it might be needed to scale the value(s),
+	//// because SDL library has only integer atomic)
+	//double _audioClock = 0.0;
+	//double _videoClock = 0.0;
+
+	AudioClock _audioClock;
+	VideoClock _videoClock;
 };

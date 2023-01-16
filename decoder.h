@@ -17,7 +17,8 @@ public:
 
 	explicit Decoder(AVCodecContext* codec_context);
 
-	bool getParameter(const char* key, int& value) const;
+	template <typename T>
+	bool getParameter(const char* key, T& value) const;
 
 	bool sendPacket(const AVPacket *packet);
 
