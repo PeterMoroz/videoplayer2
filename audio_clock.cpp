@@ -8,12 +8,12 @@ extern "C"
 
 void AudioClock::update(AVPacket* packet)
 {
-	_value = _timebase * packet->pts;
+	setValue(_timebase * packet->pts);
 }
 
 void AudioClock::update(unsigned nbytes)
 {
-	_value += static_cast<double>(nbytes) / static_cast<double>(_bytesPerSecond);
+	increment(static_cast<double>(nbytes) / static_cast<double>(_bytesPerSecond));
 }
 
 void AudioClock::setBytesPerSecond(int sampleRate, int numOfChannels, int bytesPerSample)

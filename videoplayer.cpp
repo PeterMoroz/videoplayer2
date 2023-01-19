@@ -482,7 +482,7 @@ void Videoplayer::onRefreshScreenEvent()
 			std::cerr << "An error when release read operation on picture buffer." << std::endl;
 		}
 
-		const double delay = _videoClock.calculateFrameDelay(pts, _audioClock.getValue());
+		const double delay = _videoClock.calculateFrameDelay(pts, _audioClock.value());
 		scheduleScreenRefresh(delay);
 		_videoOutputDevice.presentWindow(0);		
 	}

@@ -13,20 +13,20 @@ const double VideoClock::NOSYNC_THRESHOLD = 10.0;
 
 double VideoClock::update(AVFrame* frame)
 {
-	double value = _value;
+	double value = getValue();
 
 	double ts = frame->best_effort_timestamp;
 	ts *= _timebase;
 
 	if (ts != 0.0)
 	{
-		_value = ts;
+		setValue(ts);
 		value = ts;
 	}
 
 	double delay = _timebase;
 	delay += frame->repeat_pict * (delay * 0.5);
-	_value += delay;
+	increment(delay);
 
 	return value;
 }
