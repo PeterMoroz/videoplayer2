@@ -14,6 +14,5 @@ public:
 
 private:
 	double _value = 0.0;
-	double _timebase = 0.0;
 	int _bytesPerSecond = 0;
 };
