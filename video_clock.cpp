@@ -70,5 +70,5 @@ double VideoClock::calculateFrameDelay(const double& pts, const double& refClock
 	{
 		actualDelay = 0.010;
 	}
-	return actualDelay;
+	return actualDelay * 1000 + 0.5;
 }
