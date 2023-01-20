@@ -1,7 +1,5 @@
 #pragma once
 
-#include <SDL.h>
-
 class Clock
 {
 public:
@@ -11,19 +9,10 @@ public:
 	Clock() = default;
 	~Clock() = default;
 
-	double value() const { return getValue(); }
+	double value() const { return _value; }
 	void setTimebase(const double& timebase) { _timebase = timebase; }
 
 protected:
-	void setValue(const double& v);
-	double getValue() const;
-	void increment(const double& v);
-
-protected:
-	// double _value = 0.0;
+	double _value = 0.0;
 	double _timebase = 0.0;
-
-private:
-	SDL_atomic_t _value{ 0 };
-	int _timescale = 1'000'000;	// keep microseconds, provide seconds-oriented interface /
 };
